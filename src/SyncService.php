@@ -63,7 +63,7 @@ class SyncService
                         ->where($model->getCreatedAtColumn(), '<=', $lastPulledAt)
                         ->where($model->getDeletedAtColumn(), '>', $lastPulledAt)
                         ->watermelon()
-                        ->pluck($model->getKey()),
+                        ->pluck($model->getKeyName()),
                 ];
             }
         }
