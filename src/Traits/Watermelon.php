@@ -2,6 +2,9 @@
 
 namespace NathanHeffley\LaravelWatermelon\Traits;
 
+/**
+ * @property array|null $watermelonAttributes
+ */
 trait Watermelon
 {
     public function scopeWatermelon($query)

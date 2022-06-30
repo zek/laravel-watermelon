@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use NathanHeffley\LaravelWatermelon\Exceptions\ConflictException;
@@ -86,15 +87,11 @@ class SyncService
                 /** @var Model|SoftDeletes|Watermelon $model */
                 $model = new $class;
 
-                $create = collect($model->toWatermelonArray())
-                    ->keys()
-                    ->map(function ($col) use ($create) {
-                        return [$col, $create[$col]];
-                    });
+                $create = collect($create)->only($model->watermelonAttributes);
 
                 try {
-                    $model = $class::query()->whereKey($create->get($model->getKeyName()))->firstOrFail();
-                    $model->update($create->toArray());
+                    $model = $class::query()->whereKey(Arr::get($create, $model->getKeyName()))->firstOrFail();
+                    $model->update($create);
                 } catch (ModelNotFoundException) {
                     $class::query()->create($create->toArray());
                 }
@@ -111,11 +108,8 @@ class SyncService
                     /** @var Model|SoftDeletes|Watermelon $model */
                     $model = new $class;
 
-                    $update = collect($model->toWatermelonArray())
-                        ->keys()
-                        ->map(function ($col) use ($update) {
-                            return [$col, $update[$col]];
-                        });
+                    $update = collect($update)->only($model->watermelonAttributes);
+
                     if ($class::onlyTrashed()->whereKey($update->get($model->getKeyName()))->count() > 0) {
                         throw new ConflictException;
                     }
