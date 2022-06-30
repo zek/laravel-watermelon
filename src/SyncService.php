@@ -2,13 +2,16 @@
 
 namespace NathanHeffley\LaravelWatermelon;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use NathanHeffley\LaravelWatermelon\Exceptions\ConflictException;
+use NathanHeffley\LaravelWatermelon\Traits\Watermelon;
 
 class SyncService
 {
@@ -41,24 +44,25 @@ class SyncService
             $lastPulledAt = Carbon::createFromTimestampUTC($lastPulledAt);
 
             foreach ($this->models as $name => $class) {
+                /** @var Model|SoftDeletes $model */
+                $model = new $class;
                 $changes[$name] = [
                     'created' => (new $class)::withoutTrashed()
-                        ->where('created_at', '>', $lastPulledAt)
+                        ->where($model->getCreatedAtColumn(), '>', $lastPulledAt)
                         ->watermelon()
                         ->get()
                         ->map->toWatermelonArray(),
                     'updated' => (new $class)::withoutTrashed()
-                        ->where('created_at', '<=', $lastPulledAt)
-                        ->where('updated_at', '>', $lastPulledAt)
+                        ->where($model->getCreatedAtColumn(), '<=', $lastPulledAt)
+                        ->where($model->getUpdatedAtColumn(), '>', $lastPulledAt)
                         ->watermelon()
                         ->get()
                         ->map->toWatermelonArray(),
                     'deleted' => (new $class)::onlyTrashed()
-                        ->where('created_at', '<=', $lastPulledAt)
-                        ->where('deleted_at', '>', $lastPulledAt)
+                        ->where($model->getCreatedAtColumn(), '<=', $lastPulledAt)
+                        ->where($model->getDeletedAtColumn(), '>', $lastPulledAt)
                         ->watermelon()
-                        ->get('watermelon_id')
-                        ->pluck('watermelon_id'),
+                        ->pluck($model->getKey()),
                 ];
             }
         }
@@ -79,22 +83,17 @@ class SyncService
             }
 
             collect($request->input("$name.created"))->each(function ($create) use ($class) {
-                $create = collect((new $class)->toWatermelonArray())
+                /** @var Model|SoftDeletes|Watermelon $model */
+                $model = new $class;
+
+                $create = collect($model->toWatermelonArray())
                     ->keys()
                     ->map(function ($col) use ($create) {
                         return [$col, $create[$col]];
-                    })->reduce(function ($assoc, $pair) {
-                        list($key, $value) = $pair;
-                        if ($key === 'id') {
-                            $assoc['watermelon_id'] = $value;
-                        } else {
-                            $assoc[$key] = $value;
-                        }
-                        return $assoc;
-                    }, collect());
+                    });
 
                 try {
-                    $model = $class::query()->where('watermelon_id', $create->get('watermelon_id'))->firstOrFail();
+                    $model = $class::query()->whereKey($create->get($model->getKeyName()))->firstOrFail();
                     $model->update($create->toArray());
                 } catch (ModelNotFoundException) {
                     $class::query()->create($create->toArray());
@@ -109,27 +108,21 @@ class SyncService
                 }
 
                 collect($request->input("$name.updated"))->each(function ($update) use ($class) {
-                    $update = collect((new $class)->toWatermelonArray())
+                    /** @var Model|SoftDeletes|Watermelon $model */
+                    $model = new $class;
+
+                    $update = collect($model->toWatermelonArray())
                         ->keys()
                         ->map(function ($col) use ($update) {
                             return [$col, $update[$col]];
-                        })->reduce(function ($assoc, $pair) {
-                            list($key, $value) = $pair;
-                            if ($key === 'id') {
-                                $assoc['watermelon_id'] = $value;
-                            } else {
-                                $assoc[$key] = $value;
-                            }
-                            return $assoc;
-                        }, collect());
-
-                    if ($class::onlyTrashed()->where('watermelon_id', $update->get('watermelon_id'))->count() > 0) {
+                        });
+                    if ($class::onlyTrashed()->whereKey($update->get($model->getKeyName()))->count() > 0) {
                         throw new ConflictException;
                     }
 
                     try {
                         $task = $class::query()
-                            ->where('watermelon_id', $update->get('watermelon_id'))
+                            ->whereKey($update->get($model->getKeyName()))
                             ->watermelon()
                             ->firstOrFail();
                         $task->update($update->toArray());
@@ -154,7 +147,7 @@ class SyncService
             }
 
             collect($request->input("$name.deleted"))->each(function ($delete) use ($class) {
-                $class::query()->where('watermelon_id', $delete)->watermelon()->delete();
+                $class::query()->whereKey($delete)->watermelon()->delete();
             });
         }
 
