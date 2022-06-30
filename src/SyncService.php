@@ -78,8 +78,9 @@ class SyncService
     {
         DB::beginTransaction();
 
+        /** @var Watermelon $class */
         foreach ($this->models as $name => $class) {
-            if (!$request->input($name)) {
+            if (!$request->input($name) || !$class::allowWatermelonCreate()) {
                 continue;
             }
 
@@ -90,6 +91,7 @@ class SyncService
                 $create = collect($create)->only($model->watermelonAttributes);
 
                 try {
+                    /** @var Watermelon $model */
                     $model = $class::query()->whereKey(Arr::get($create, $model->getKeyName()))->firstOrFail();
                     $model->update($create);
                 } catch (ModelNotFoundException) {
@@ -99,6 +101,7 @@ class SyncService
         }
 
         try {
+            /** @var Watermelon $class */
             foreach ($this->models as $name => $class) {
                 if (!$request->input($name)) {
                     continue;
@@ -115,11 +118,15 @@ class SyncService
                     }
 
                     try {
+                        /** @var Watermelon $task */
                         $task = $class::query()
                             ->whereKey($update->get($model->getKeyName()))
                             ->watermelon()
                             ->firstOrFail();
-                        $task->update($update->toArray());
+
+                        if ($task->allowWatermelonUpdate()) {
+                            $task->update($update->toArray());
+                        }
                     } catch (ModelNotFoundException) {
                         try {
                             $class::query()->create($update->toArray());
@@ -135,13 +142,18 @@ class SyncService
             return response()->json('', 409);
         }
 
+        /** @var Watermelon $class */
         foreach ($this->models as $name => $class) {
             if (!$request->input($name)) {
                 continue;
             }
 
             collect($request->input("$name.deleted"))->each(function ($delete) use ($class) {
-                $class::query()->whereKey($delete)->watermelon()->delete();
+                /** @var Watermelon $model */
+                $model = $class::query()->whereKey($delete)->watermelon()->first();
+                if ($model->allowWatermelonDelete()) {
+                    $model->delete();
+                }
             });
         }
 

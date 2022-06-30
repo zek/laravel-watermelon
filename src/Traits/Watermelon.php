@@ -12,6 +12,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 trait Watermelon
 {
+    public static function allowWatermelonCreate(): bool
+    {
+        return true;
+    }
+
     public function scopeWatermelon($query)
     {
         return $query;
@@ -20,11 +25,6 @@ trait Watermelon
     public function toWatermelonArray(): array
     {
         return $this->only($this->watermelonAttributes ?? null);
-    }
-
-    public function allowWatermelonCreate(): bool
-    {
-        return true;
     }
 
     public function allowWatermelonUpdate(): bool
