@@ -13,4 +13,19 @@ trait Watermelon
     {
         return $this->only($this->watermelonAttributes ?? null);
     }
+
+    public function allowWatermelonCreate(): bool
+    {
+        return true;
+    }
+
+    public function allowWatermelonUpdate(): bool
+    {
+        return true;
+    }
+
+    public function allowWatermelonDelete(): bool
+    {
+        return true;
+    }
 }
