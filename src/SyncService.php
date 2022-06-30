@@ -133,8 +133,6 @@ class SyncService
                         try {
                             if ($class::allowWatermelonCreate()) {
                                 $class::query()->create($update->toArray());
-                            } else {
-                                throw new ConflictException;
                             }
                         } catch (QueryException) {
                             throw new ConflictException;
