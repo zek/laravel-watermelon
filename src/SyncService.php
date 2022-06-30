@@ -93,7 +93,9 @@ class SyncService
                 try {
                     /** @var Watermelon $model */
                     $model = $class::query()->whereKey(Arr::get($create, $model->getKeyName()))->firstOrFail();
-                    $model->update($create);
+                    if ($model->allowWatermelonUpdate()) {
+                        $model->update($create);
+                    }
                 } catch (ModelNotFoundException) {
                     $class::query()->create($create->toArray());
                 }
@@ -129,7 +131,11 @@ class SyncService
                         }
                     } catch (ModelNotFoundException) {
                         try {
-                            $class::query()->create($update->toArray());
+                            if ($class::allowWatermelonCreate()) {
+                                $class::query()->create($update->toArray());
+                            } else {
+                                throw new ConflictException;
+                            }
                         } catch (QueryException) {
                             throw new ConflictException;
                         }
