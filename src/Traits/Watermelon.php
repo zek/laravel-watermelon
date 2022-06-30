@@ -2,8 +2,13 @@
 
 namespace NathanHeffley\LaravelWatermelon\Traits;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 /**
  * @property array|null $watermelonAttributes
+ * @mixin Model
+ * @mixin SoftDeletes
  */
 trait Watermelon
 {

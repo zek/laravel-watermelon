@@ -84,7 +84,7 @@ class SyncService
             }
 
             collect($request->input("$name.created"))->each(function ($create) use ($class) {
-                /** @var Model|SoftDeletes|Watermelon $model */
+                /** @var Watermelon $model */
                 $model = new $class;
 
                 $create = collect($create)->only($model->watermelonAttributes);
@@ -105,7 +105,7 @@ class SyncService
                 }
 
                 collect($request->input("$name.updated"))->each(function ($update) use ($class) {
-                    /** @var Model|SoftDeletes|Watermelon $model */
+                    /** @var Watermelon $model */
                     $model = new $class;
 
                     $update = collect($update)->only($model->watermelonAttributes);
