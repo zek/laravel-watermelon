@@ -11,10 +11,6 @@ trait Watermelon
 
     public function toWatermelonArray(): array
     {
-        $attributes = array_merge([
-            'id' => $this->watermelon_id,
-        ], $this->only($this->watermelonAttributes ?? []));
-
-        return $attributes;
+        return $this->only($this->watermelonAttributes ?? null);
     }
 }
