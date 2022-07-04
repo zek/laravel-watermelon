@@ -23,7 +23,7 @@ class SyncService
         $this->models = $models;
     }
 
-    public function pull(Request $request): JsonResponse
+    public function pull(Request $request): array
     {
         $lastPulledAt = $request->get('last_pulled_at');
 
@@ -68,13 +68,13 @@ class SyncService
             }
         }
 
-        return response()->json([
+        return [
             'changes' => $changes,
             'timestamp' => $timestamp,
-        ]);
+        ];
     }
 
-    public function push(Request $request): JsonResponse
+    public function push(Request $request): array
     {
         DB::beginTransaction();
 
@@ -163,6 +163,6 @@ class SyncService
 
         DB::commit();
 
-        return response()->json('', 204);
+        return [];
     }
 }

@@ -10,11 +10,14 @@ class SyncController extends Controller
 {
     public function pull(SyncService $watermelon, Request $request): JsonResponse
     {
-        return $watermelon->pull($request);
+        $res = $watermelon->pull($request);
+        return response()->json($res);
     }
 
     public function push(SyncService $watermelon, Request $request): JsonResponse
     {
-        return $watermelon->push($request);
+        $res = $watermelon->push($request);
+
+        return response()->json($res, 204);
     }
 }
