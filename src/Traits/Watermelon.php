@@ -27,6 +27,11 @@ trait Watermelon
         return $this->only($this->watermelonAttributes ?? null);
     }
 
+    public function toWatermelonDeleteValue(): mixed
+    {
+        return $this->getKey();
+    }
+
     public function allowWatermelonUpdate(): bool
     {
         return true;

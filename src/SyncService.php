@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\QueryException;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -31,12 +30,15 @@ class SyncService
 
         $changes = [];
 
+
         if ($lastPulledAt === null) {
             foreach ($this->models as $name => $class) {
                 $changes[$name] = [
                     'created' => (new $class)::watermelon()
                         ->get()
-                        ->map->toWatermelonArray(),
+                        ->map
+                        ->toWatermelonArray()
+                        ->whereNotNull(),
                     'updated' => [],
                     'deleted' => [],
                 ];
@@ -52,18 +54,25 @@ class SyncService
                         ->where($model->getCreatedAtColumn(), '>', $lastPulledAt)
                         ->watermelon()
                         ->get()
-                        ->map->toWatermelonArray(),
+                        ->map
+                        ->toWatermelonArray()
+                        ->whereNotNull(),
                     'updated' => (new $class)::withoutTrashed()
                         ->where($model->getCreatedAtColumn(), '<=', $lastPulledAt)
                         ->where($model->getUpdatedAtColumn(), '>', $lastPulledAt)
                         ->watermelon()
                         ->get()
-                        ->map->toWatermelonArray(),
+                        ->map
+                        ->toWatermelonArray()
+                        ->whereNotNull(),
                     'deleted' => (new $class)::onlyTrashed()
                         ->where($model->getCreatedAtColumn(), '<=', $lastPulledAt)
                         ->where($model->getDeletedAtColumn(), '>', $lastPulledAt)
                         ->watermelon()
-                        ->pluck($model->getKeyName()),
+                        ->get()
+                        ->map
+                        ->toWatermelonDeleteValue()
+                        ->whereNotNull(),
                 ];
             }
         }
